@@ -63,6 +63,7 @@ namespace Htlvb.Http
 
         public byte[] ReadBytes(int count)
         {
+            // TODO this is highly inefficient
             return Encoding.GetBytes(ReadBytesAsText(numberOfBytes: count));
         }
 
@@ -110,6 +111,11 @@ namespace Htlvb.Http
             var charsConsumed = 0;
             while (charsConsumed < charBufferEnd)
             {
+                // TODO this is totally wrong when using *weird* encodings or systems (see https://en.wikipedia.org/wiki/Newline#Representation)
+                // it might be better to have the user decide what he considers a Newline
+                // and then we could also rename the method to something like
+                // `bool ReadFromBufferUntil(List<byte> content, byte[] endMarker, bool includeEndMarkerInContent)`
+
                 if (charBuffer[charsConsumed] == '\r')
                 {
                     if (charsConsumed + 1 >= charBufferEnd)
