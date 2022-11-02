@@ -6,7 +6,7 @@
 
   <PropertyGroup>
     <PackageId>Htlvb.Http</PackageId>
-    <Version>0.0.3</Version>
+    <Version>0.0.4</Version>
     <Authors>Johannes Egger</Authors>
     <Company>HTLVB</Company>
     <Description>Helper classes to read and write HTTP messages.</Description>
