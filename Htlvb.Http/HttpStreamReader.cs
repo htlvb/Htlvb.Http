@@ -61,6 +61,11 @@ namespace Htlvb.Http
             return line.ToString();
         }
 
+        public byte[] ReadBytes(int count)
+        {
+            return Encoding.GetBytes(ReadBytesAsText(numberOfBytes: count));
+        }
+
         public string ReadBytesAsText(int numberOfBytes)
         {
             StringBuilder result = new();
