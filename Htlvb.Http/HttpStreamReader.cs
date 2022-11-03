@@ -54,6 +54,10 @@ namespace Htlvb.Http
             while (!ReadLineFromBuffer(line))
             {
                 var bytesRead = stream.Read(byteBuffer, byteBufferEnd, byteBuffer.Length - byteBufferEnd);
+                if (bytesRead == 0)
+                {
+                    return line.Length == 0 ? null : line.ToString();
+                }
                 decoder.Convert(byteBuffer, byteBufferEnd, bytesRead, charBuffer, charBufferEnd, charBuffer.Length - charBufferEnd, false, out var bytesConverted, out var charsConverted, out var completed);
                 byteBufferEnd += bytesRead;
                 charBufferEnd += charsConverted;
@@ -96,6 +100,10 @@ namespace Htlvb.Http
             while (numberOfBytesToRead > 0)
             {
                 var bytesRead = stream.Read(byteBuffer, byteBufferEnd, Math.Min(byteBuffer.Length - byteBufferEnd, numberOfBytesToRead));
+                if (bytesRead == 0)
+                {
+                    return result.Length == 0 ? null : result.ToString();
+                }
                 numberOfBytesToRead -= bytesRead;
                 decoder.Convert(byteBuffer, byteBufferEnd, bytesRead, charBuffer, charBufferEnd, charBuffer.Length, false, out var bytesConverted, out var charsConverted, out var completed);
                 byteBufferEnd += bytesRead;

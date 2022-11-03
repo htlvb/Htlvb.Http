@@ -17,6 +17,34 @@ namespace Htlvb.Http.Test
         }
 
         [Fact]
+        public void ReadLineWithEndOfStream()
+        {
+            using var stream = CreateStreamFromText("Single line", Encoding.ASCII);
+            HttpStreamReader streamReader = new(stream, Encoding.ASCII, 16, 16);
+            var actual = streamReader.ReadLine();
+            Assert.Equal("Single line", actual);
+        }
+
+        [Fact]
+        public void ReadLineAfterEndOfStream()
+        {
+            using var stream = CreateStreamFromText("Single line", Encoding.ASCII);
+            HttpStreamReader streamReader = new(stream, Encoding.ASCII, 16, 16);
+            streamReader.ReadLine();
+            var actual = streamReader.ReadLine();
+            Assert.Null(actual);
+        }
+
+        [Fact]
+        public void ReadEmptyLine()
+        {
+            using var stream = CreateStreamFromText("\r\n", Encoding.ASCII);
+            HttpStreamReader streamReader = new(stream, Encoding.ASCII, 16, 16);
+            var actual = streamReader.ReadLine();
+            Assert.Equal("", actual);
+        }
+
+        [Fact]
         public void ReadLineWithMultipleIterations()
         {
             using var stream = CreateStreamFromText("Single line\r\n", Encoding.ASCII);
@@ -69,8 +97,7 @@ namespace Htlvb.Http.Test
             actual += streamReader.ReadBytesAsText(4);
             streamReader.Encoding = Encoding.ASCII;
             actual += streamReader.ReadBytesAsText(1);
-            var expected = "a🚗b";
-            Assert.Equal(expected, actual);
+            Assert.Equal("a🚗b", actual);
         }
 
         [Fact]
@@ -82,8 +109,19 @@ namespace Htlvb.Http.Test
             var secondLine = streamReader.ReadBytesAsText(2);
             secondLine += streamReader.ReadBytesAsText(4);
             secondLine += streamReader.ReadBytesAsText(2);
-            var expected = "Second l";
-            Assert.Equal(expected, secondLine);
+            Assert.Equal("Second l", secondLine);
+        }
+
+        [Fact]
+        public void ReadMoreBytesThanAvailable()
+        {
+            using var stream = CreateStreamFromText("First line\r\nSecond line", Encoding.ASCII);
+            HttpStreamReader streamReader = new(stream, Encoding.ASCII, 16, 16);
+            var firstLine = streamReader.ReadLine();
+            var secondLine = streamReader.ReadBytesAsText(2);
+            secondLine += streamReader.ReadBytesAsText(4);
+            secondLine += streamReader.ReadBytesAsText(6);
+            Assert.Equal("Second line", secondLine);
         }
 
         private static Stream CreateStreamFromText(string text, Encoding encoding)
