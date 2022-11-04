@@ -1,5 +1,7 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Text;
 
 namespace Htlvb.Http
@@ -67,51 +69,42 @@ namespace Htlvb.Http
 
         public byte[] ReadBytes(int count)
         {
-            // TODO this is highly inefficient
-            return Encoding.GetBytes(ReadBytesAsText(numberOfBytes: count));
+            List<byte> result = new(count);
+
+            int numberOfBytesToRead = count;
+
+            // Can read all bytes from buffer
+            if (byteBufferEnd >= numberOfBytesToRead)
+            {
+                int numberOfChars = encoding.GetCharCount(byteBuffer, 0, numberOfBytesToRead);
+                result.AddRange(byteBuffer.Take(numberOfBytesToRead));
+                ResetBuffer(numberOfChars);
+                return result.ToArray();
+            }
+
+            // Empty buffer
+            result.AddRange(byteBuffer.Take(byteBufferEnd));
+            numberOfBytesToRead -= byteBufferEnd;
+            ResetBuffer(charBufferEnd);
+
+            // Read remaining bytes directly from stream
+            while (numberOfBytesToRead > 0)
+            {
+                var bytesRead = stream.Read(byteBuffer, 0, Math.Min(byteBuffer.Length, numberOfBytesToRead));
+                if (bytesRead == 0)
+                {
+                    throw new EndOfStreamException($"{numberOfBytesToRead} more bytes couldn't be read from the stream.");
+                }
+                result.AddRange(byteBuffer.Take(bytesRead));
+                numberOfBytesToRead -= bytesRead;
+            }
+            return result.ToArray();
         }
 
         public string ReadBytesAsText(int numberOfBytes)
         {
-            StringBuilder result = new();
-            int numberOfBytesToRead = numberOfBytes;
-
-            if (byteBufferEnd >= numberOfBytesToRead)
-            {
-                int charBufferIndex = 0;
-                while (true)
-                {
-                    numberOfBytesToRead -= encoding.GetByteCount(charBuffer, charBufferIndex, 1);
-                    if (numberOfBytesToRead < 0)
-                    {
-                        break;
-                    }
-                    result.Append(charBuffer, charBufferIndex, 1);
-                    charBufferIndex++;
-                }
-                ResetBuffer(charBufferIndex);
-                return result.ToString();
-            }
-
-            result.Append(charBuffer, 0, charBufferEnd);
-            numberOfBytesToRead -= encoding.GetByteCount(charBuffer, 0, charBufferEnd);
-            ResetBuffer(charBufferEnd);
-
-            while (numberOfBytesToRead > 0)
-            {
-                var bytesRead = stream.Read(byteBuffer, byteBufferEnd, Math.Min(byteBuffer.Length - byteBufferEnd, numberOfBytesToRead));
-                if (bytesRead == 0)
-                {
-                    return result.Length == 0 ? null : result.ToString();
-                }
-                numberOfBytesToRead -= bytesRead;
-                decoder.Convert(byteBuffer, byteBufferEnd, bytesRead, charBuffer, charBufferEnd, charBuffer.Length, false, out var bytesConverted, out var charsConverted, out var completed);
-                byteBufferEnd += bytesRead;
-                charBufferEnd += charsConverted;
-                result.Append(charBuffer, 0, charBufferEnd);
-                ResetBuffer(charBufferEnd);
-            }
-            return result.ToString();
+            byte[] content = ReadBytes(numberOfBytes);
+            return encoding.GetString(content);
         }
 
         private bool ReadLineFromBuffer(StringBuilder line)

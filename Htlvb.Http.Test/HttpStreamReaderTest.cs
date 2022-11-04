@@ -105,7 +105,7 @@ namespace Htlvb.Http.Test
         {
             using var stream = CreateStreamFromText("First line\r\nSecond line", Encoding.ASCII);
             HttpStreamReader streamReader = new(stream, Encoding.ASCII, 16, 16);
-            var firstLine = streamReader.ReadLine();
+            streamReader.ReadLine();
             var secondLine = streamReader.ReadBytesAsText(2);
             secondLine += streamReader.ReadBytesAsText(4);
             secondLine += streamReader.ReadBytesAsText(2);
@@ -117,11 +117,20 @@ namespace Htlvb.Http.Test
         {
             using var stream = CreateStreamFromText("First line\r\nSecond line", Encoding.ASCII);
             HttpStreamReader streamReader = new(stream, Encoding.ASCII, 16, 16);
+            streamReader.ReadLine();
+            streamReader.ReadBytesAsText(2);
+            streamReader.ReadBytesAsText(4);
+            Assert.Throws<EndOfStreamException>(() => streamReader.ReadBytesAsText(6));
+        }
+
+        [Fact]
+        public void ReadUnicodeBytesWhenEncodingIsAscii()
+        {
+            using var stream = CreateStreamFromText("First line\r\nA 🚗 has wheels", Encoding.UTF8);
+            HttpStreamReader streamReader = new(stream, Encoding.ASCII, 16, 16);
             var firstLine = streamReader.ReadLine();
-            var secondLine = streamReader.ReadBytesAsText(2);
-            secondLine += streamReader.ReadBytesAsText(4);
-            secondLine += streamReader.ReadBytesAsText(6);
-            Assert.Equal("Second line", secondLine);
+            var secondLine = streamReader.ReadBytes(Encoding.UTF8.GetByteCount("A 🚗 has wheels"));
+            Assert.Equal("A 🚗 has wheels", Encoding.UTF8.GetString(secondLine));
         }
 
         private static Stream CreateStreamFromText(string text, Encoding encoding)
